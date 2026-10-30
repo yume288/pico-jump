@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fff4fa">
+  <title>PICO JUMP!｜ぴょんぴょんラン</title>
+  <style>
+    :root {
+      --ink: #493747;
+      --muted: #927b8d;
+      --pink: #ff7eaf;
+      --pink-dark: #ec5d98;
+      --lilac: #b5a2ff;
+      --cream: #fffaf2;
+      --line: #f2dfeb;
+      --mint: #bfeee1;
+      --shadow: 0 12px 34px rgba(123, 83, 117, .10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 20px 14px 34px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 7%, rgba(255, 199, 223, .48), transparent 24rem),
+        radial-gradient(circle at 93% 17%, rgba(205, 195, 255, .42), transparent 25rem),
+        #fff9fc;
+      font-family: ui-rounded, "Hiragino Maru Gothic ProN", "Yu Gothic", Meiryo, system-ui, sans-serif;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .app { width: min(100%, 510px); margin: 0 auto; }
+    .brand { text-align: center; margin: 4px 0 16px; }
+    .eyebrow { color: var(--pink-dark); font-size: .75rem; font-weight: 900; letter-spacing: .18em; }
+    h1 { margin: 5px 0 3px; font-size: clamp(1.8rem, 7vw, 2.55rem); line-height: 1.1; letter-spacing: -.04em; }
+    h1 span { color: var(--pink-dark); }
+    .subtitle { margin: 8px 0 0; color: var(--muted); font-size: .88rem; }
+    .game-card, .panel { border: 1px solid rgba(242, 223, 235, .95); border-radius: 25px; background: rgba(255,255,255,.88); box-shadow: var(--shadow); overflow: hidden; }
+    .game-topbar { display:flex; align-items:center; justify-content:space-between; padding: 13px 17px; background: #fff; border-bottom: 1px solid #f8e9f1; }
+    .status-pill { display:inline-flex; align-items:center; gap:7px; color:var(--muted); font-size:.74rem; font-weight:800; }
+    .dot { width:8px;height:8px;border-radius:50%; background:#8bd7bf; box-shadow:0 0 0 4px #e5faf2; }
+    .score-box { text-align:right; }
+    .score-label { color:var(--muted); font-size:.65rem; font-weight:900; letter-spacing:.12em; }
+    .score-value { font-size:1.5rem; font-weight:1000; font-variant-numeric:tabular-nums; line-height:1.15; }
+    .stage { position:relative; overflow:hidden; background:#fff4fa; touch-action: manipulation; }
+    #gameCanvas { display:block; width:100%; height:auto; aspect-ratio: 360 / 420; }
+    .overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:23px; background:rgba(255, 246, 251, .54); backdrop-filter:blur(3px); }
+    .overlay[hidden] { display:none; }
+    .overlay-card { width:min(100%, 300px); text-align:center; padding:22px 18px 20px; border:1px solid rgba(255,255,255,.9); border-radius:24px; background:rgba(255,255,255,.93); box-shadow:0 12px 40px rgba(151,94,131,.16); }
+    .mascot { font-size:2.9rem; line-height:1.2; margin-bottom:7px; }
+    .overlay h2 { margin:4px 0 8px; font-size:1.35rem; }
+    .overlay p { margin:0 0 15px; color:var(--muted); font-size:.84rem; line-height:1.7; }
+    .primary, .secondary, .jump-button { border:0; border-radius:999px; font-weight:900; transition:transform .12s ease, filter .12s ease; }
+    .primary { width:100%; padding:13px 18px; color:#fff; background:linear-gradient(135deg, var(--pink), var(--pink-dark)); box-shadow:0 7px 0 #d95088, 0 12px 20px rgba(236,93,152,.2); }
+    .primary:active, .secondary:active, .jump-button:active { transform:translateY(2px); filter:brightness(.98); }
+    .secondary { padding:10px 14px; color:#765c73; background:#f8edf5; }
+    .controls { display:flex; align-items:center; gap:10px; padding:13px 15px 15px; background:#fff; }
+    .control-note { flex:1; color:var(--muted); font-size:.75rem; line-height:1.55; }
+    .jump-button { min-width:122px; padding:12px 18px; color:#fff; background:linear-gradient(135deg, #b7a4ff, #9480f6); box-shadow:0 5px 0 #8370d7; letter-spacing:.04em; }
+    .jump-button:disabled { opacity:.45; cursor:not-allowed; box-shadow:none; }
+    .below { display:grid; gap:13px; margin-top:14px; }
+    .panel { padding:17px; }
+    .panel-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:13px; }
+    .panel h2 { margin:0; font-size:1rem; }
+    .small-label { color:var(--muted); font-size:.69rem; }
+    .name-label { display:block; margin-bottom:7px; color:var(--muted); font-size:.75rem; font-weight:800; }
+    .name-input { width:100%; min-width:0; padding:11px 13px; border:1px solid var(--line); border-radius:13px; outline:none; color:var(--ink); background:#fffafd; }
+    .name-input:focus { border-color:#c5b4ff; box-shadow:0 0 0 3px rgba(181,162,255,.16); }
+    .leaderboard { display:grid; gap:8px; }
+    .rank-row { display:grid; grid-template-columns:35px minmax(0,1fr) auto; align-items:center; gap:9px; padding:10px 11px; border-radius:14px; background:#fff8fc; }
+    .rank-number { display:grid; place-items:center; width:30px; height:30px; border-radius:11px; background:#f2eaff; color:#8266cf; font-size:.78rem; font-weight:1000; }
+    .rank-row:nth-child(1) .rank-number { background:#fff0bd; color:#9d741b; }
+    .rank-row:nth-child(2) .rank-number { background:#e7e9f5; color:#6f7599; }
+    .rank-row:nth-child(3) .rank-number { background:#ffe0cf; color:#a26d52; }
+    .rank-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.86rem; font-weight:850; }
+    .rank-score { font-size:.9rem; font-weight:1000; font-variant-numeric:tabular-nums; }
+    .empty { padding:15px 8px; text-align:center; color:var(--muted); font-size:.81rem; line-height:1.65; }
+    .rank-footer { margin-top:10px; color:var(--muted); font-size:.69rem; line-height:1.6; }
+    .start-name-label { text-align:left; margin-top:8px; }
+    .start-name-input { margin-bottom:12px; text-align:center; }
+    .start-name-help { margin:6px 0 12px !important; font-size:.7rem !important; }
+    .result-actions { display:grid; grid-template-columns:1fr; gap:8px; margin-top:11px; }
+    .result-actions button { width:100%; }
+    .message { min-height:1.35em; margin:9px 0 0; color:#8467c8; font-size:.75rem; line-height:1.55; }
+    .message.error { color:#c44a72; }
+    .message.success { color:#268568; }
+    .footer { text-align:center; padding:17px 10px 0; color:#b29bad; font-size:.68rem; line-height:1.6; }
+    @media (min-width: 620px) { body { padding-top:30px; } .below { grid-template-columns: .8fr 1.2fr; align-items:start; } }
+    @media (max-width: 360px) { body { padding-inline:9px; } .controls { padding-inline:10px; } .jump-button { min-width:105px; } .panel { padding:14px; } }
+
+    html, body { width:100%; height:100%; min-height:100%; overflow:hidden; }
+    body { padding:0; min-height:100dvh; height:100dvh; overscroll-behavior:none; }
+    .app { width:100%; max-width:560px; height:100dvh; margin:0 auto; padding:10px 12px; }
+    .screen { width:100%; height:100%; min-height:0; }
+    .screen[hidden] { display:none !important; }
+    .game-screen { display:flex; flex-direction:column; justify-content:center; gap:8px; }
+    .brand { flex:0 0 auto; margin:0 0 3px; }
+    .brand .eyebrow { font-size:.65rem; }
+    .brand h1 { margin:2px 0; font-size:clamp(1.55rem, 6vw, 2rem); }
+    .brand .subtitle { margin:3px 0 0; font-size:.75rem; }
+    .game-card { flex:0 1 auto; min-height:0; display:flex; flex-direction:column; }
+    .game-topbar { flex:0 0 auto; padding:9px 14px; }
+    .stage { flex:1 1 auto; min-height:0; display:flex; align-items:center; justify-content:center; }
+    #gameCanvas { width:auto; max-width:100%; height:auto; max-height:100%; aspect-ratio:360 / 420; }
+    .overlay { overflow:auto; }
+    .overlay-card { max-height:100%; overflow:auto; padding:16px; }
+    .mascot { font-size:2.3rem; margin-bottom:3px; }
+    .overlay h2 { margin:3px 0 6px; }
+    .overlay p { margin-bottom:10px; }
+    .start-name-input { margin-bottom:8px; }
+    .start-name-help { margin:4px 0 9px !important; }
+    .controls { flex:0 0 auto; padding:9px 12px 11px; }
+    .control-note { font-size:.69rem; }
+    .jump-button { padding:10px 16px; }
+    .game-hint { margin:0; text-align:center; color:var(--muted); font-size:.68rem; }
+    .result-screen { display:flex; flex-direction:column; justify-content:center; gap:10px; overflow-y:auto; overscroll-behavior:contain; }
+    .result-header { flex:0 0 auto; text-align:center; }
+    .result-header .eyebrow { font-size:.68rem; }
+    .result-header h1 { margin:2px 0; font-size:1.75rem; }
+    .result-summary { flex:0 0 auto; text-align:center; padding:13px 16px; }
+    .result-mascot { font-size:2rem; line-height:1.1; }
+    .result-summary h2 { margin:4px 0; font-size:1.12rem; }
+    .result-caption { margin:2px 0 0; color:var(--muted); font-size:.75rem; }
+    .result-score { color:var(--pink-dark); font-size:2.3rem; font-weight:1000; line-height:1.1; font-variant-numeric:tabular-nums; }
+    .result-score small { margin-left:4px; font-size:.9rem; }
+    .result-summary .message { margin:5px 0 0; }
+    .result-actions { grid-template-columns:1fr 1fr; margin-top:9px; }
+    .result-actions button { padding:11px 9px; }
+    .ranking-panel { flex:0 0 auto; padding:13px; }
+    .ranking-panel .panel-heading { margin-bottom:9px; }
+    .leaderboard { gap:5px; }
+    .rank-row { padding:7px 9px; }
+    .rank-footer { margin-top:7px; }
+    .result-footer { margin:0; text-align:center; color:var(--muted); font-size:.67rem; }
+    @media (max-height:700px) {
+      .app { padding-top:6px; padding-bottom:6px; }
+      .game-screen { gap:4px; }
+      .brand .subtitle, .game-hint { display:none; }
+      .overlay-card { padding:10px 13px; }
+      .overlay .mascot { font-size:1.8rem; }
+      .overlay p { font-size:.76rem; margin-bottom:7px; }
+      .start-name-help { display:none; }
+      .result-screen { gap:6px; }
+      .result-summary { padding:9px 12px; }
+      .ranking-panel { padding:10px; }
+      .rank-row { padding:5px 8px; }
+    }
+    @media (max-width:360px) {
+      .app { padding-left:7px; padding-right:7px; }
+      .control-note { font-size:.63rem; }
+      .jump-button { min-width:94px; }
+    }
+
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section id="gameScreen" class="screen game-screen" aria-label="ゲーム画面">
+      <header class="brand">
+        <div class="eyebrow">A TINY JUMPING CHALLENGE</div>
+        <h1>PICO <span>JUMP!</span> ✦</h1>
+        <p class="subtitle">ぴょん！と跳んで、障害物をよけよう。</p>
+      </header>
+      <section class="game-card">
+        <div class="game-topbar">
+          <div class="status-pill"><span class="dot"></span><span id="modeLabel">READY TO PLAY</span></div>
+          <div class="score-box"><div class="score-label">YOUR SCORE</div><div class="score-value" id="scoreValue">000</div></div>
+        </div>
+        <div class="stage" id="stage">
+          <canvas id="gameCanvas" width="360" height="420" aria-label="ジャンプゲーム。タップまたはキー操作でジャンプし、空中でもう一度押すとダブルジャンプします。"></canvas>
+          <div class="overlay" id="overlay">
+            <div class="overlay-card">
+              <div class="mascot" id="overlayMascot">🐰</div>
+              <h2 id="overlayTitle">準備はいい？</h2>
+              <p id="overlayText">障害物をジャンプでよけよう！<br>空中でもう一度押すとダブルジャンプ！</p>
+              <label class="name-label start-name-label" for="playerName">ランキングに表示する名前（12文字まで）</label>
+              <input class="name-input start-name-input" id="playerName" maxlength="12" autocomplete="nickname" placeholder="なまえを入力" value="" />
+              <p class="start-name-help">最初に名前を決めよう。ゲーム終了時にスコアを自動登録するよ！</p>
+              <button class="primary" id="startButton">ゲームスタート ✨</button>
+            </div>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="control-note">📱 画面タップ / JUMP ボタン<br>⌨️ PC：Space / ↑ キー<br>✨ 空中でもう一度押してダブルジャンプ！</div>
+          <button class="jump-button" id="jumpButton" disabled>JUMP ↑</button>
+        </div>
+      </section>
+      <p class="game-hint">☁ のんびりタイム・ダッシュタイムがランダムに発生するよ！</p>
+    </section>
+
+    <section id="resultScreen" class="screen result-screen" hidden aria-label="結果とランキング">
+      <header class="result-header">
+        <div class="eyebrow">YOUR RESULT</div>
+        <h1>PICO <span>JUMP!</span> ✦</h1>
+      </header>
+      <section class="panel result-summary">
+        <div class="result-mascot" id="resultMascot">🐰</div>
+        <h2 id="resultTitle">おつかれさま！</h2>
+        <p class="result-caption" id="resultCaption">今回のスコア</p>
+        <div class="result-score"><span id="resultScore">0</span><small>pt</small></div>
+        <p class="message" id="scoreMessage" aria-live="polite">スコアを登録しています…</p>
+        <div class="result-actions">
+          <button class="primary" id="playAgainButton">もう一回遊ぶ ↻</button>
+          <button class="secondary" id="shareButton" disabled>結果をシェア ↗</button>
+        </div>
+      </section>
+      <section class="panel ranking-panel">
+        <div class="panel-heading"><h2>🏆 ランキング TOP 10</h2><span class="small-label" id="rankMode">オンライン</span></div>
+        <div class="leaderboard" id="leaderboard" aria-live="polite"><div class="empty">ランキングを読み込み中…</div></div>
+        <div class="rank-footer" id="rankFootnote">オンラインランキングを読み込み中…</div>
+      </section>
+      <p class="result-footer">同じ名前では最高スコアだけがランキングに残るよ。</p>
+    </section>
+  </main>
+
+  <!-- ランキングを共有する場合は、後でSupabaseのURLとpublishable keyを設定します。 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // オンラインランキングの設定。画面上には設定フォームを表示しません。
+    // 公開してよい Publishable key（sb_publishable_... または旧 anon key）のみを設定します。
+    // 以前の画面で保存した設定がブラウザに残っていれば、それを優先して利用します。
+    const DEFAULT_SUPABASE_URL = 'https://bxscxkjpjfcgocnacnly.supabase.co';
+    const DEFAULT_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_TgqteTcbW2BPX6iI-hzsdA_WgxB4Apq';
+    const CONFIG_STORAGE_KEY = 'picoJumpSupabaseConfigV1';
+    function readSavedSupabaseConfig() {
+      try { return JSON.parse(localStorage.getItem(CONFIG_STORAGE_KEY) || '{}') || {}; }
+      catch { return {}; }
+    }
+    const savedSupabaseConfig = readSavedSupabaseConfig();
+    const DEFAULT_CONFIG_READY = DEFAULT_SUPABASE_URL.startsWith('https://') &&
+      DEFAULT_SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_');
+    let SUPABASE_URL = DEFAULT_CONFIG_READY ? DEFAULT_SUPABASE_URL : (savedSupabaseConfig.url || DEFAULT_SUPABASE_URL);
+    let SUPABASE_PUBLISHABLE_KEY = DEFAULT_CONFIG_READY ? DEFAULT_SUPABASE_PUBLISHABLE_KEY : (savedSupabaseConfig.key || DEFAULT_SUPABASE_PUBLISHABLE_KEY);
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreValue = document.getElementById('scoreValue');
+    const modeLabel = document.getElementById('modeLabel');
+    const overlay = document.getElementById('overlay');
+    const overlayMascot = document.getElementById('overlayMascot');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlayText = document.getElementById('overlayText');
+    const startButton = document.getElementById('startButton');
+    const jumpButton = document.getElementById('jumpButton');
+    const playerName = document.getElementById('playerName');
+    const leaderboardElement = document.getElementById('leaderboard');
+    const rankMode = document.getElementById('rankMode');
+    const rankFootnote = document.getElementById('rankFootnote');
+    const scoreMessage = document.getElementById('scoreMessage');
+    const shareButton = document.getElementById('shareButton');
+    const gameScreen = document.getElementById('gameScreen');
+    const resultScreen = document.getElementById('resultScreen');
+    const playAgainButton = document.getElementById('playAgainButton');
+    const resultMascot = document.getElementById('resultMascot');
+    const resultTitle = document.getElementById('resultTitle');
+    const resultCaption = document.getElementById('resultCaption');
+    const resultScore = document.getElementById('resultScore');
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const GROUND_Y = 345;
+    const PLAYER_X = 72;
+    const PLAYER_H = 37;
+    const LOCAL_KEY = 'picoJumpLocalScoresV1';
+    const PLAYER_NAME_KEY = 'picoJumpPlayerNameV1';
+    let state = 'ready'; // ready / running / over
+    let animationId = null;
+    let lastTime = 0;
+    let score = 0;
+    let distance = 0;
+    let speed = 3.5;
+    let spawnDistance = 0;
+    let nextSpawn = 260;
+    let elapsedTime = 0;
+    let nextPaceChange = 6;
+    let paceType = 'normal'; // normal / slow / rush
+    let paceTimer = 0;
+    let speedMultiplier = 1;
+    let targetSpeedMultiplier = 1;
+    let obstacles = [];
+    let clouds = [];
+    let playerY = GROUND_Y - PLAYER_H;
+    let playerVy = 0;
+    let onGround = true;
+    let jumpsUsed = 0;
+    const MAX_JUMPS = 2;
+    let justFinishedScore = null;
+    let currentPlayerName = '';
+    let onlineClient = null;
+    let onlineEnabled = false;
+
+    function setupOnlineClient() {
+      const looksConfigured = SUPABASE_URL.startsWith('https://') &&
+        !SUPABASE_URL.includes('PASTE_') &&
+        SUPABASE_PUBLISHABLE_KEY.length > 20 &&
+        !SUPABASE_PUBLISHABLE_KEY.includes('PASTE_') &&
+        window.supabase && typeof window.supabase.createClient === 'function';
+      if (!looksConfigured) return false;
+      try {
+        onlineClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+        onlineEnabled = true;
+        return true;
+      } catch (error) {
+        console.warn('Online ranking setup error:', error);
+        onlineEnabled = false;
+        return false;
+      }
+    }
+
+    function setMessage(text, kind = '') {
+      scoreMessage.textContent = text;
+      scoreMessage.className = 'message' + (kind ? ' ' + kind : '');
+    }
+    function getSafeName() {
+      return playerName.value.trim().replace(/[<>]/g, '').replace(/\s+/g, ' ').slice(0, 12);
+    }
+    function getNameKey(name) {
+      return String(name || '').trim().toLocaleLowerCase();
+    }
+    function readLocalScores() {
+      try {
+        const rows = JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]');
+        return Array.isArray(rows) ? rows.filter(x => x && Number.isFinite(Number(x.score))) : [];
+      } catch { return []; }
+    }
+    function saveLocalScore(name, points) {
+      const byName = new Map();
+      for (const row of readLocalScores()) {
+        const key = getNameKey(row.player_name || row.name);
+        if (!key) continue;
+        const prev = byName.get(key);
+        if (!prev || Number(row.score) > Number(prev.score)) byName.set(key, row);
+      }
+      const key = getNameKey(name);
+      const previous = byName.get(key);
+      if (!previous || Number(points) > Number(previous.score)) {
+        byName.set(key, { player_name: name, score: Math.floor(Number(points) || 0), created_at: new Date().toISOString() });
+      }
+      const rows = Array.from(byName.values()).sort((a, b) => Number(b.score) - Number(a.score));
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(rows.slice(0, 10)));
+    }
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+    }
+    function renderScores(rows) {
+      leaderboardElement.replaceChildren();
+      if (!rows.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty';
+        empty.textContent = onlineEnabled ? 'まだ記録がないよ。最初のランクインを目指そう！' : 'まだ記録がないよ。ゲームを1回プレイしてみよう！';
+        leaderboardElement.appendChild(empty);
+        return;
+      }
+      rows.slice(0, 10).forEach((row, index) => {
+        const item = document.createElement('div');
+        item.className = 'rank-row';
+        const rank = document.createElement('div'); rank.className = 'rank-number'; rank.textContent = String(index + 1).padStart(2, '0');
+        const name = document.createElement('div'); name.className = 'rank-name'; name.textContent = row.player_name || row.name || 'PICO';
+        const points = document.createElement('div'); points.className = 'rank-score'; points.textContent = `${Math.floor(Number(row.score) || 0)} pt`;
+        item.append(rank, name, points);
+        leaderboardElement.appendChild(item);
+      });
+    }
+    async function loadLeaderboard() {
+      if (onlineEnabled && onlineClient) {
+        rankMode.textContent = 'オンライン';
+        rankFootnote.textContent = '友達と同じランキングを共有中。スコア送信にはネット接続が必要です。';
+        try {
+          const { data, error } = await onlineClient.from('jump_scores').select('player_name, score, created_at').order('score', { ascending: false }).order('created_at', { ascending: true }).limit(10);
+          if (error) throw error;
+          renderScores(data || []);
+          return;
+        } catch (error) {
+          console.error('Could not load online scores:', error);
+          renderScores(readLocalScores());
+          setMessage('オンラインランキングに接続できません。Supabaseの設定とテーブル権限を確認してね。', 'error');
+          rankFootnote.textContent = 'オンライン接続に失敗したため、この端末内の記録を表示しています。';
+          rankMode.textContent = '接続エラー';
+          return;
+        }
+      }
+      rankMode.textContent = 'この端末';
+      rankFootnote.textContent = 'オンライン未接続のため、この端末の記録だけが表示されています。';
+      renderScores(readLocalScores());
+    }
+
+    function roundedRect(x, y, width, height, radius, fillStyle) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + width, y, x + width, y + height, radius);
+      ctx.arcTo(x + width, y + height, x, y + height, radius);
+      ctx.arcTo(x, y + height, x, y, radius);
+      ctx.arcTo(x, y, x + width, y, radius);
+      ctx.closePath();
+      ctx.fillStyle = fillStyle;
+      ctx.fill();
+    }
+    function makeCloud(x, y, size, alpha = 1) { return { x, y, size, alpha }; }
+    function resetGame() {
+      score = 0; distance = 0; speed = 3.5; spawnDistance = 0; nextSpawn = 255;
+      elapsedTime = 0; nextPaceChange = 5 + Math.random() * 3;
+      paceType = 'normal'; paceTimer = 0; speedMultiplier = 1; targetSpeedMultiplier = 1;
+      obstacles = [];
+      playerY = GROUND_Y - PLAYER_H; playerVy = 0; onGround = true; jumpsUsed = 0;
+      clouds = [makeCloud(35, 72, 1.0), makeCloud(230, 110, .76), makeCloud(315, 47, .54)];
+      scoreValue.textContent = '000';
+    }
+    function drawCloud(cloud) {
+      ctx.save(); ctx.globalAlpha = cloud.alpha;
+      const s = cloud.size;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.ellipse(cloud.x, cloud.y, 22*s, 10*s, 0, 0, Math.PI*2);
+      ctx.ellipse(cloud.x - 12*s, cloud.y - 4*s, 11*s, 10*s, 0, 0, Math.PI*2);
+      ctx.ellipse(cloud.x + 2*s, cloud.y - 8*s, 13*s, 14*s, 0, 0, Math.PI*2);
+      ctx.ellipse(cloud.x + 14*s, cloud.y - 2*s, 11*s, 9*s, 0, 0, Math.PI*2);
+      ctx.fill(); ctx.restore();
+    }
+    function drawBackground() {
+      const sky = ctx.createLinearGradient(0, 0, 0, H);
+      sky.addColorStop(0, '#ffeaf4'); sky.addColorStop(.7, '#fff7fb'); sky.addColorStop(1, '#f5e9ff');
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(255,255,255,.8)';
+      [[29,135,2],[139,52,2],[307,155,2],[267,68,1.5],[180,155,1.3],[326,228,1.8],[48,237,1.5]].forEach(([x,y,r]) => {
+        ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+      });
+      clouds.forEach(drawCloud);
+      ctx.fillStyle = '#f5e3f4';
+      ctx.beginPath(); ctx.moveTo(0, 302); ctx.quadraticCurveTo(80, 270, 152, 307); ctx.quadraticCurveTo(253, 348, 360, 290); ctx.lineTo(360, 420); ctx.lineTo(0, 420); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#d9f2e7';
+      ctx.beginPath(); ctx.moveTo(0, 330); ctx.quadraticCurveTo(84, 298, 165, 330); ctx.quadraticCurveTo(255, 362, 360, 318); ctx.lineTo(360, 420); ctx.lineTo(0, 420); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#c5eadb'; ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+      ctx.strokeStyle = 'rgba(91,163,135,.25)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, GROUND_Y + 1); ctx.lineTo(W, GROUND_Y + 1); ctx.stroke();
+      // 小さな地面の模様が流れて、走っている感じを出す
+      ctx.fillStyle = 'rgba(71,150,119,.24)';
+      const offset = (distance * .8) % 32;
+      for (let x = -32 + offset; x < W; x += 32) {
+        roundedRect(x, GROUND_Y + 24 + ((Math.floor(x/32) % 2) ? 5 : 0), 12, 3, 2, 'rgba(71,150,119,.24)');
+      }
+    }
+    function drawRunner() {
+      const x = PLAYER_X; const y = playerY;
+      // ふわっとした影
+      ctx.fillStyle = 'rgba(99,134,117,.17)';
+      ctx.beginPath(); ctx.ellipse(x, GROUND_Y + 3, onGround ? 17 : 11, onGround ? 4 : 3, 0, 0, Math.PI*2); ctx.fill();
+      // 耳
+      ctx.save();
+      ctx.translate(x, y + 5);
+      ctx.rotate(onGround ? 0 : -.18);
+      roundedRect(-11, -15, 8, 19, 5, '#ff91b9');
+      roundedRect(3, -18, 8, 22, 5, '#ff91b9');
+      roundedRect(-9, -12, 4, 12, 3, '#ffc0d6');
+      roundedRect(5, -14, 4, 14, 3, '#ffc0d6');
+      ctx.restore();
+      // body
+      roundedRect(x - 17, y + 7, 34, 29, 12, '#ff83b2');
+      // tummy
+      ctx.beginPath(); ctx.ellipse(x + 1, y + 25, 9, 8, 0, 0, Math.PI*2); ctx.fillStyle = '#ffd9e8'; ctx.fill();
+      // feet
+      roundedRect(x - 15, y + 31, 13, 8, 4, '#f56f9f');
+      roundedRect(x + 3, y + 31, 13, 8, 4, '#f56f9f');
+      // eyes
+      ctx.fillStyle = '#4a3345';
+      ctx.beginPath(); ctx.arc(x - 6, y + 18, 2, 0, Math.PI*2); ctx.arc(x + 7, y + 18, 2, 0, Math.PI*2); ctx.fill();
+      // blush
+      ctx.fillStyle = '#ffb6cf';
+      ctx.beginPath(); ctx.ellipse(x - 11, y + 23, 3.5, 2, 0, 0, Math.PI*2); ctx.ellipse(x + 12, y + 23, 3.5, 2, 0, 0, Math.PI*2); ctx.fill();
+      // tiny smile
+      ctx.strokeStyle = '#4a3345'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(x + .5, y + 21, 3, .25, Math.PI - .25); ctx.stroke();
+      // sparkle
+      ctx.fillStyle = '#fff'; ctx.font = '13px sans-serif'; ctx.fillText('✦', x + 15, y + 1);
+    }
+    function drawObstacle(obstacle) {
+      const x = obstacle.x, y = GROUND_Y - obstacle.h, w = obstacle.w, h = obstacle.h;
+      // 障害物は3種類。形と色が変わるので、次に何が来るかにも変化が出る。
+      if (obstacle.type === 'puddle') {
+        roundedRect(x, y + 6, w, h - 6, Math.min(12, w / 3), '#83cdb7');
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(x + w * .35, y + h * .58, 2, 0, Math.PI * 2);
+        ctx.arc(x + w * .68, y + h * .58, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#477f73'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.arc(x + w * .52, y + h * .76, 3, .2, Math.PI - .2); ctx.stroke();
+        return;
+      }
+      const color = obstacle.type === 'tall' ? '#f5a77f' : '#a995f5';
+      const face = obstacle.type === 'tall' ? '#986447' : '#64518f';
+      roundedRect(x, y + 8, w, h - 8, 7, color);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(x + 3, y + 12); ctx.lineTo(x + 6, y); ctx.lineTo(x + 13, y + 11);
+      ctx.lineTo(x + w * .72, y - 3); ctx.lineTo(x + w - 3, y + 12); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(x + w*.35, y + h*.55, 2, 0, Math.PI*2); ctx.arc(x + w*.68, y + h*.55, 2, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = face; ctx.lineWidth = 1.5; ctx.lineCap='round';
+      ctx.beginPath(); ctx.arc(x + w*.52, y + h*.68, 3, .2, Math.PI-.2); ctx.stroke();
+    }
+
+    function createObstacle() {
+      const roll = Math.random();
+      if (roll < 0.56) {
+        return { x: W + 12, w: 22 + Math.random() * 10, h: 24 + Math.random() * 20, type: 'thorn' };
+      }
+      if (roll < 0.80) {
+        return { x: W + 12, w: 25 + Math.random() * 8, h: 37 + Math.random() * 11, type: 'tall' };
+      }
+      return { x: W + 12, w: 34 + Math.random() * 10, h: 18 + Math.random() * 10, type: 'puddle' };
+    }
+
+    function chooseNextGap() {
+      // 距離が伸びるほど少しずつ間隔の幅を広げ、毎回同じリズムにならないようにする。
+      const progress = Math.min(score / 220, 1);
+      const minGap = 215 - 18 * progress;
+      const maxGap = 405 - 5 * progress;
+      const roll = Math.random();
+      if (roll < 0.22) return minGap + Math.random() * 55; // 少し詰まった間隔
+      if (roll < 0.48) return maxGap - 65 + Math.random() * 65; // ひと息つける長めの間隔
+      return minGap + Math.random() * (maxGap - minGap);
+    }
+
+    function updatePace(dt) {
+      elapsedTime += dt / 60;
+      if (paceTimer > 0) {
+        paceTimer -= dt / 60;
+        if (paceTimer <= 0) {
+          paceType = 'normal';
+          targetSpeedMultiplier = 1;
+          modeLabel.textContent = 'RUNNING…';
+          nextPaceChange = elapsedTime + 5.5 + Math.random() * 4.5;
+        }
+      } else if (elapsedTime >= nextPaceChange) {
+        // ときどきスローダウン、ときどきダッシュ。急変しすぎないよう徐々に速度を変える。
+        paceType = Math.random() < 0.56 ? 'slow' : 'rush';
+        paceTimer = 2.4 + Math.random() * 1.4;
+        targetSpeedMultiplier = paceType === 'slow' ? 0.68 : 1.24;
+        modeLabel.textContent = paceType === 'slow' ? 'のんびりタイム ☁️' : 'ダッシュタイム ✨';
+      }
+      const easing = 1 - Math.pow(0.88, dt);
+      speedMultiplier += (targetSpeedMultiplier - speedMultiplier) * easing;
+    }
+
+    function drawPaceBanner() {
+      if (paceType === 'normal') return;
+      const slow = paceType === 'slow';
+      const label = slow ? '☁ のんびりタイム！' : '✦ ダッシュタイム！';
+      ctx.save();
+      ctx.globalAlpha = 0.92;
+      roundedRect(W / 2 - 91, 183, 182, 34, 17, slow ? '#e5f6ef' : '#fff0c9');
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = slow ? '#4b9980' : '#b47727';
+      ctx.font = '900 12px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, W / 2, 204);
+      ctx.textAlign = 'start';
+      ctx.restore();
+    }
+    function drawScene() {
+      drawBackground();
+      obstacles.forEach(drawObstacle);
+      drawRunner();
+      drawPaceBanner();
+      if (state === 'ready') {
+        ctx.fillStyle = 'rgba(114,91,125,.7)'; ctx.font = '800 11px system-ui'; ctx.textAlign = 'center';
+        ctx.fillText('READY, SET, JUMP!', W/2, 255); ctx.textAlign = 'start';
+      }
+    }
+    function jump() {
+      if (state !== 'running') return;
+      if (jumpsUsed >= MAX_JUMPS) return;
+      // 1回目も空中の2回目も上向きの力を与える。着地するまで最大2回。
+      playerVy = jumpsUsed === 0 ? -11.2 : -10.8;
+      onGround = false;
+      jumpsUsed++;
+    }
+    async function finishGame() {
+      state = 'over';
+      cancelAnimationFrame(animationId);
+      jumpButton.disabled = true;
+      playerName.disabled = false;
+      modeLabel.textContent = 'RUN COMPLETE';
+      justFinishedScore = score;
+      const name = currentPlayerName || getSafeName();
+      saveLocalScore(name, score);
+      overlay.hidden = true;
+      gameScreen.hidden = true;
+      resultScreen.hidden = false;
+      resultMascot.textContent = score >= 100 ? '👑' : '🐰';
+      resultTitle.textContent = score >= 100 ? 'すごい！ナイスラン！' : 'おつかれさま！';
+      resultCaption.textContent = score >= 100 ? 'かなり上手！ナイスラン！' : '今回のスコア';
+      resultScore.textContent = String(score);
+      shareButton.disabled = false;
+      drawScene();
+
+      if (onlineEnabled && onlineClient) {
+        setMessage('スコアを自動登録中…');
+        try {
+          const { data, error } = await onlineClient.rpc('submit_jump_score', {
+            p_player_name: name,
+            p_score: Math.floor(justFinishedScore)
+          });
+          if (error) throw error;
+          const savedRow = Array.isArray(data) ? data[0] : data;
+          const bestScore = Number(savedRow && savedRow.score !== undefined ? savedRow.score : justFinishedScore);
+          if (bestScore > justFinishedScore) {
+            setMessage(`今回 ${justFinishedScore} pt。自己ベスト ${bestScore} pt をキープしたよ！`, 'success');
+          } else {
+            setMessage(`${name}のスコア ${bestScore} pt を自動登録したよ！ ✨`, 'success');
+          }
+          await loadLeaderboard();
+        } catch (error) {
+          console.error('Automatic score submit failed:', error);
+          const detail = error && (error.message || error.details || error.hint || error.code)
+            ? String(error.message || error.details || error.hint || error.code).slice(0, 140)
+            : 'Supabase RPCの設定を確認してください';
+          setMessage(`端末には記録したけど、オンライン登録に失敗したよ（${detail}）。`, 'error');
+        }
+      } else {
+        setMessage('この端末に記録したよ。オンライン設定が済むとスコアを自動共有できるよ！');
+      }
+    }
+    function startGame() {
+      const chosenName = getSafeName();
+      if (!chosenName) {
+        overlay.hidden = false;
+        overlayText.textContent = 'ゲームを始める前に、ランキングに表示する名前を入力してね。';
+        setMessage('最初にプレイヤー名を入力してね。', 'error');
+        playerName.focus();
+        return;
+      }
+      currentPlayerName = chosenName;
+      playerName.value = chosenName;
+      playerName.disabled = true;
+      try { localStorage.setItem(PLAYER_NAME_KEY, chosenName); } catch {}
+      cancelAnimationFrame(animationId);
+      resetGame();
+      state = 'running'; lastTime = 0;
+      resultScreen.hidden = true;
+      gameScreen.hidden = false;
+      overlay.hidden = true;
+      jumpButton.disabled = false;
+      startButton.textContent = 'ゲームスタート ✨';
+      modeLabel.textContent = 'RUNNING…';
+      shareButton.disabled = true;
+      justFinishedScore = null;
+      setMessage(`${currentPlayerName}、障害物にぶつからないようにジャンプ！`);
+      animationId = requestAnimationFrame(gameLoop);
+    }
+    function gameLoop(timestamp) {
+      if (state !== 'running') return;
+      const dt = lastTime ? Math.min((timestamp - lastTime) / 16.667, 2.1) : 1;
+      lastTime = timestamp;
+      updatePace(dt);
+      const baseSpeed = Math.min(3.5 + distance / 2200, 7.0);
+      speed = baseSpeed * speedMultiplier;
+      distance += speed * dt;
+      score = Math.floor(distance / 34);
+      scoreValue.textContent = String(score).padStart(3, '0');
+
+      clouds.forEach(c => { c.x -= speed * .12 * dt; if (c.x < -40) c.x = W + 40; });
+      playerVy += .58 * dt;
+      playerY += playerVy * dt;
+      if (playerY >= GROUND_Y - PLAYER_H) { playerY = GROUND_Y - PLAYER_H; playerVy = 0; onGround = true; jumpsUsed = 0; }
+
+      spawnDistance += speed * dt;
+      if (spawnDistance >= nextSpawn) {
+        obstacles.push(createObstacle());
+        spawnDistance = 0;
+        nextSpawn = chooseNextGap();
+      }
+      obstacles.forEach(o => o.x -= speed * dt);
+      obstacles = obstacles.filter(o => o.x + o.w > -8);
+
+      const pLeft = PLAYER_X - 13, pRight = PLAYER_X + 13;
+      const pTop = playerY + 7, pBottom = playerY + PLAYER_H - 1;
+      const hit = obstacles.some(o => pRight > o.x + 2 && pLeft < o.x + o.w - 2 && pBottom > GROUND_Y - o.h + 5 && pTop < GROUND_Y - 1);
+      drawScene();
+      if (hit) { finishGame(); return; }
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    startButton.addEventListener('click', startGame);
+    playAgainButton.addEventListener('click', () => {
+      if (currentPlayerName) playerName.value = currentPlayerName;
+      startGame();
+    });
+    jumpButton.addEventListener('pointerdown', event => { event.preventDefault(); jump(); });
+    canvas.addEventListener('pointerdown', event => { if (state === 'running') { event.preventDefault(); jump(); } });
+    window.addEventListener('keydown', event => {
+      if (event.repeat) return;
+      if (event.code === 'Space' || event.code === 'ArrowUp') {
+        event.preventDefault();
+        if (state === 'running') jump();
+        else if (state === 'ready') startGame();
+      }
+    });
+    playerName.addEventListener('input', () => {
+      if (playerName.value.length > 12) playerName.value = playerName.value.slice(0, 12);
+    });
+
+    shareButton.addEventListener('click', async () => {
+      const points = justFinishedScore === null ? score : justFinishedScore;
+      const text = `${currentPlayerName || getSafeName()}のPICO JUMP! スコアは ${points} pt！🐰 きみは超えられる？`;
+      const url = location.protocol === 'file:' ? '' : location.href.split('#')[0];
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: 'PICO JUMP!', text, ...(url ? { url } : {}) });
+          setMessage('シェア画面を開いたよ！', 'success');
+        } else if (navigator.clipboard && url) {
+          await navigator.clipboard.writeText(`${text}\n${url}`);
+          setMessage('スコアとゲームURLをコピーしたよ！', 'success');
+        } else {
+          window.prompt('この結果をコピーして友達に送ってね：', `${text}${url ? '\n' + url : ''}`);
+        }
+      } catch (error) {
+        if (error && error.name !== 'AbortError') setMessage('シェアできなかった場合は、スコアをコピーして送ってね。', 'error');
+      }
+    });
+
+    try { playerName.value = localStorage.getItem(PLAYER_NAME_KEY) || ''; } catch {}
+    const hasOnlineConfig = setupOnlineClient();
+    if (hasOnlineConfig) {
+      setMessage('オンラインランキングに接続中…');
+    } else {
+      rankMode.textContent = 'この端末';
+      rankFootnote.textContent = 'オンライン未接続です。Publishable keyをHTMLの設定行に入れると、友達とランキングを共有できます。';
+    }
+    gameScreen.hidden = false;
+    resultScreen.hidden = true;
+    resetGame();
+    drawScene();
+    loadLeaderboard();
+  </script>
+</body>
+</html>
